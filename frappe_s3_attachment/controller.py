@@ -67,7 +67,7 @@ class S3Operations(object):
                 pass
 
         file_name = file_name.replace(' ', '_')
-        file_name = self.strip_special_chars(file_name)
+        # file_name = self.strip_special_chars(file_name)
         key = ''.join(
             random.choice(
                 string.ascii_uppercase + string.digits) for _ in range(8)
@@ -89,18 +89,20 @@ class S3Operations(object):
         except Exception as e:
             print(e)
 
-        if not doc_path:
-            if self.folder_name:
-                final_key = self.folder_name + "/" + year + "/" + month + \
-                    "/" + day + "/" + parent_doctype + "/" + key + "_" + \
-                    file_name
-            else:
-                final_key = year + "/" + month + "/" + day + "/" + \
-                    parent_doctype + "/" + key + "_" + file_name
-            return final_key
-        else:
-            final_key = doc_path + '/' + key + "_" + file_name
-            return final_key
+        # if not doc_path:
+        # if self.folder_name:
+        # final_key = self.folder_name + "/" + year + "/" + month + \
+        #     "/" + day + "/" + parent_doctype + "/" + key + "_" + \
+        #     file_name
+        #
+        final_key = self.folder_name + "/" + parent_doctype + "/" + year + "/" + parent_name + "/" + file_name
+        # else:
+        #     final_key = year + "/" + month + "/" + day + "/" + \
+        #         parent_doctype + "/" + key + "_" + file_name
+        return final_key
+        # else:
+        #     final_key = doc_path + '/' + key + "_" + file_name
+        #     return final_key
 
     def upload_files_to_s3_with_key(
             self, file_path, file_name, is_private, parent_doctype, parent_name
@@ -209,50 +211,53 @@ def file_upload_to_s3(doc, method):
     """
     check and upload files to s3. the path check and
     """
-    s3_upload = S3Operations()
-    path = doc.file_url
-    site_path = frappe.utils.get_site_path()
-    if doc.doctype == "File" and not doc.attached_to_doctype:
-        parent_doctype = doc.doctype
-        parent_name = doc.name
-    else:
-        parent_doctype = doc.attached_to_doctype
-        parent_name = doc.attached_to_name
-    ignore_s3_upload_for_doctype = frappe.local.conf.get('ignore_s3_upload_for_doctype') or ['Data Import']
-    if parent_doctype not in ignore_s3_upload_for_doctype:
-        if not doc.is_private:
-            file_path = site_path + '/public' + path
+    customizations = frappe.db.sql(""" SELECT * FROM `tabMplify Customizations` WHERE customization_id='S3UA'""",
+                                   as_dict=1)
+    if len(customizations) > 0 and customizations[0].enable:
+        s3_upload = S3Operations()
+        path = doc.file_url
+        site_path = frappe.utils.get_site_path()
+        if doc.doctype == "File" and not doc.attached_to_doctype:
+            parent_doctype = doc.doctype
+            parent_name = doc.name
         else:
-            file_path = site_path + path
-        key,filename = s3_upload.upload_files_to_s3_with_key(
-            file_path, doc.file_name,
-            doc.is_private, parent_doctype,
-            parent_name
-        )
-
-        if doc.is_private:
-            method = "frappe_s3_attachment.controller.generate_file"
-            site_base_url = frappe.local.conf.site_base_url if frappe.local.conf.site_base_url else ""
-            file_url = """{0}/api/method/{1}?key={2}&file_name={3}""".format(site_base_url, method, key, filename)
-        else:
-            file_url = '{}/{}/{}'.format(
-                s3_upload.S3_CLIENT.meta.endpoint_url,
-                s3_upload.BUCKET,
-                key
+            parent_doctype = doc.attached_to_doctype
+            parent_name = doc.attached_to_name
+        ignore_s3_upload_for_doctype = frappe.local.conf.get('ignore_s3_upload_for_doctype') or ['Data Import']
+        if parent_doctype not in ignore_s3_upload_for_doctype:
+            if not doc.is_private:
+                file_path = site_path + '/public' + path
+            else:
+                file_path = site_path + path
+            key,filename = s3_upload.upload_files_to_s3_with_key(
+                file_path, doc.file_name,
+                doc.is_private, parent_doctype,
+                parent_name
             )
-        frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
-            old_parent=%s, content_hash=%s WHERE name=%s""", (
-            file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
 
-        # From this PR, this code is unuseful
-        # https://github.com/zerodha/frappe-attachments-s3/pull/39
-        # if frappe.get_meta(parent_doctype).get('image_field'):
-        #     frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(
-        #         parent_doctype).get('image_field'), file_url)
+            if doc.is_private:
+                method = "frappe_s3_attachment.controller.generate_file"
+                site_base_url = frappe.local.conf.site_base_url if frappe.local.conf.site_base_url else ""
+                file_url = """{0}/api/method/{1}?key={2}&file_name={3}""".format(site_base_url, method, key, filename)
+            else:
+                file_url = '{}/{}/{}'.format(
+                    s3_upload.S3_CLIENT.meta.endpoint_url,
+                    s3_upload.BUCKET,
+                    key
+                )
+            frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
+                old_parent=%s, content_hash=%s WHERE name=%s""", (
+                file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
 
-        frappe.db.commit()
-        doc.reload()
-        os.remove(file_path)
+            # From this PR, this code is unuseful
+            # https://github.com/zerodha/frappe-attachments-s3/pull/39
+            # if frappe.get_meta(parent_doctype).get('image_field'):
+            #     frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(
+            #         parent_doctype).get('image_field'), file_url)
+
+            frappe.db.commit()
+            doc.reload()
+            os.remove(file_path)
 
 
 @frappe.whitelist()
@@ -340,21 +345,27 @@ def migrate_existing_files():
     Function to migrate the existing files to s3.
     """
     # get_all_files_from_public_folder_and_upload_to_s3
-    files_list = frappe.get_all(
-        'File',
-        fields=['name', 'file_url', 'file_name']
-    )
-    for file in files_list:
-        if file['file_url']:
-            if not s3_file_regex_match(file['file_url']):
-                upload_existing_files_s3(file['name'], file['file_name'])
-    return True
+    customizations = frappe.db.sql(""" SELECT * FROM `tabMplify Customizations` WHERE customization_id='S3UA'""",
+                                   as_dict=1)
+    if len(customizations) > 0 and customizations[0].enable:
+        files_list = frappe.get_all(
+            'File',
+            fields=['name', 'file_url', 'file_name']
+        )
+        for file in files_list:
+            if file['file_url']:
+                if not s3_file_regex_match(file['file_url']):
+                    upload_existing_files_s3(file['name'], file['file_name'])
+        return True
 
 
 def delete_from_cloud(doc, method):
     """Delete file from s3"""
-    s3 = S3Operations()
-    s3.delete_from_s3(doc.content_hash)
+    customizations = frappe.db.sql(""" SELECT * FROM `tabMplify Customizations` WHERE customization_id='S3UA'""",
+                                   as_dict=1)
+    if len(customizations) > 0 and customizations[0].enable:
+        s3 = S3Operations()
+        s3.delete_from_s3(doc.content_hash)
 
 
 @frappe.whitelist()
