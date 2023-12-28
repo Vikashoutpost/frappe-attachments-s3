@@ -66,28 +66,18 @@ class S3Operations(object):
             except:
                 pass
 
-        file_name = file_name.replace(' ', '_')
+        # file_name = file_name.replace(' ', '_')
         # file_name = self.strip_special_chars(file_name)
         key = ''.join(
             random.choice(
                 string.ascii_uppercase + string.digits) for _ in range(8)
         )
-
-        today = datetime.datetime.now()
-        year = today.strftime("%Y")
-        month = today.strftime("%m")
-        day = today.strftime("%d")
-
-        doc_path = None
+        document = frappe.get_doc(parent_doctype,parent_name)
         try:
-            doc_path = frappe.db.get_value(
-                parent_doctype,
-                filters={'name': parent_name},
-                fieldname=['s3_folder_path']
-            )
-            doc_path = doc_path.rstrip('/').lstrip('/')
-        except Exception as e:
-            print(e)
+            year = frappe.utils.getdate(document.posting_date).year
+        except:
+            year = frappe.utils.getdate(document.transaction_date).year
+
 
         # if not doc_path:
         # if self.folder_name:
@@ -95,7 +85,7 @@ class S3Operations(object):
         #     "/" + day + "/" + parent_doctype + "/" + key + "_" + \
         #     file_name
         #
-        final_key = self.folder_name + "/" + parent_doctype + "/" + year + "/" + parent_name + "/" + file_name
+        final_key = self.folder_name + "/" + parent_doctype + "/" + str(year) + "/" + parent_name + "/" + file_name
         # else:
         #     final_key = year + "/" + month + "/" + day + "/" + \
         #         parent_doctype + "/" + key + "_" + file_name
@@ -213,7 +203,7 @@ def file_upload_to_s3(doc, method):
     """
     customizations = frappe.db.sql(""" SELECT * FROM `tabMplify Customizations` WHERE customization_id='S3UA'""",
                                    as_dict=1)
-    if len(customizations) > 0 and customizations[0].enable:
+    if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype not in ['Data Import','Prepared Report']:
         s3_upload = S3Operations()
         path = doc.file_url
         site_path = frappe.utils.get_site_path()
