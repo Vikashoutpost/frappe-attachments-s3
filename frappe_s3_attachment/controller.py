@@ -72,6 +72,8 @@ class S3Operations(object):
             random.choice(
                 string.ascii_uppercase + string.digits) for _ in range(8)
         )
+
+
         document = frappe.get_doc(parent_doctype,parent_name)
         try:
             year = frappe.utils.getdate(document.posting_date).year
@@ -203,7 +205,7 @@ def file_upload_to_s3(doc, method):
     """
     customizations = frappe.db.sql(""" SELECT * FROM `tabMplify Customizations` WHERE customization_id='S3UA'""",
                                    as_dict=1)
-    if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype not in ['Data Import','Prepared Report']:
+    if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype not in ['Data Import','Prepared Report'] and doc.attached_to_doctype:
         s3_upload = S3Operations()
         path = doc.file_url
         site_path = frappe.utils.get_site_path()
