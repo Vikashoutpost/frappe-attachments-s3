@@ -205,7 +205,8 @@ def file_upload_to_s3(doc, method):
     """
     customizations = frappe.db.sql(""" SELECT * FROM `tabMplify Customizations` WHERE customization_id='S3UA'""",
                                    as_dict=1)
-    if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype not in ['Data Import','Prepared Report'] and doc.attached_to_doctype:
+
+    if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype and doc.attached_to_doctype not in ['Data Import','Prepared Report'] and doc.attached_to_name:
         s3_upload = S3Operations()
         path = doc.file_url
         site_path = frappe.utils.get_site_path()
@@ -358,7 +359,6 @@ def delete_from_cloud(doc, method):
     if len(customizations) > 0 and customizations[0].enable:
         s3 = S3Operations()
         s3.delete_from_s3(doc.content_hash)
-
 
 @frappe.whitelist()
 def ping():
