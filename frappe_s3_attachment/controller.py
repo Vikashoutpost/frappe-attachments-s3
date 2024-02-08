@@ -78,8 +78,10 @@ class S3Operations(object):
         try:
             year = frappe.utils.getdate(document.posting_date).year
         except:
-            year = frappe.utils.getdate(document.transaction_date).year
-
+            try:
+                year = frappe.utils.getdate(document.transaction_date).year
+            except:
+                year = frappe.utils.getdate(document.creation).year
 
         # if not doc_path:
         # if self.folder_name:
