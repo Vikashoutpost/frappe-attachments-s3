@@ -362,7 +362,7 @@ def delete_from_cloud(doc, method):
     if len(customizations) > 0 and customizations[0].enable:
         check_file_url = frappe.db.sql(""" SELECT * FROM `tabFile` WHERE file_url=%s """,doc.file_url,as_dict=1)
 
-        if check_file_url == 1 and doc.file_url.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs"):
+        if len(check_file_url) == 1 and doc.file_url.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs"):
             s3 = S3Operations()
             s3.delete_from_s3(doc.content_hash)
 
