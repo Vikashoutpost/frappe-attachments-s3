@@ -209,7 +209,7 @@ def file_upload_to_s3(doc, method):
                                    as_dict=1)
 
     if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype and doc.attached_to_doctype not in ['Data Import','Prepared Report'] and doc.attached_to_name:
-        if not doc.file_url.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs"):
+        if doc.file_url and not doc.file_url.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs"):
             s3_upload = S3Operations()
             path = doc.file_url
             site_path = frappe.utils.get_site_path()
