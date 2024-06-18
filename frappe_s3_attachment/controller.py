@@ -360,8 +360,11 @@ def delete_from_cloud(doc, method):
     customizations = frappe.db.sql(""" SELECT * FROM `tabMplify Customizations` WHERE customization_id='S3UA'""",
                                    as_dict=1)
     if len(customizations) > 0 and customizations[0].enable:
-        s3 = S3Operations()
-        s3.delete_from_s3(doc.content_hash)
+        check_file_url = frappe.db.sql(""" SELECT * FROM `tabFile` WHERE file_url=%s """,doc.file_url,as_dict=1)
+
+        if check_file_url == 1 and doc.file_url.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs"):
+            s3 = S3Operations()
+            s3.delete_from_s3(doc.content_hash)
 
 @frappe.whitelist()
 def ping():
