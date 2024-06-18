@@ -209,50 +209,51 @@ def file_upload_to_s3(doc, method):
                                    as_dict=1)
 
     if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype and doc.attached_to_doctype not in ['Data Import','Prepared Report'] and doc.attached_to_name:
-        s3_upload = S3Operations()
-        path = doc.file_url
-        site_path = frappe.utils.get_site_path()
-        if doc.doctype == "File" and not doc.attached_to_doctype:
-            parent_doctype = doc.doctype
-            parent_name = doc.name
-        else:
-            parent_doctype = doc.attached_to_doctype
-            parent_name = doc.attached_to_name
-        ignore_s3_upload_for_doctype = frappe.local.conf.get('ignore_s3_upload_for_doctype') or ['Data Import']
-        if parent_doctype not in ignore_s3_upload_for_doctype and not path.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs"):
-            if not doc.is_private:
-                file_path = site_path + '/public' + path
+        if not doc.file_url.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs"):
+            s3_upload = S3Operations()
+            path = doc.file_url
+            site_path = frappe.utils.get_site_path()
+            if doc.doctype == "File" and not doc.attached_to_doctype:
+                parent_doctype = doc.doctype
+                parent_name = doc.name
             else:
-                file_path = site_path + path
-            key,filename = s3_upload.upload_files_to_s3_with_key(
-                file_path, doc.file_name,
-                doc.is_private, parent_doctype,
-                parent_name
-            )
-
-            if doc.is_private:
-                method = "frappe_s3_attachment.controller.generate_file"
-                site_base_url = frappe.local.conf.site_base_url if frappe.local.conf.site_base_url else ""
-                file_url = """{0}/api/method/{1}?key={2}&file_name={3}""".format(site_base_url, method, key, filename)
-            else:
-                file_url = '{}/{}/{}'.format(
-                    s3_upload.S3_CLIENT.meta.endpoint_url,
-                    s3_upload.BUCKET,
-                    key
+                parent_doctype = doc.attached_to_doctype
+                parent_name = doc.attached_to_name
+            ignore_s3_upload_for_doctype = frappe.local.conf.get('ignore_s3_upload_for_doctype') or ['Data Import']
+            if parent_doctype not in ignore_s3_upload_for_doctype and not path.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs"):
+                if not doc.is_private:
+                    file_path = site_path + '/public' + path
+                else:
+                    file_path = site_path + path
+                key,filename = s3_upload.upload_files_to_s3_with_key(
+                    file_path, doc.file_name,
+                    doc.is_private, parent_doctype,
+                    parent_name
                 )
-            frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
-                old_parent=%s, content_hash=%s WHERE name=%s""", (
-                file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
 
-            # From this PR, this code is unuseful
-            # https://github.com/zerodha/frappe-attachments-s3/pull/39
-            # if frappe.get_meta(parent_doctype).get('image_field'):
-            #     frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(
-            #         parent_doctype).get('image_field'), file_url)
+                if doc.is_private:
+                    method = "frappe_s3_attachment.controller.generate_file"
+                    site_base_url = frappe.local.conf.site_base_url if frappe.local.conf.site_base_url else ""
+                    file_url = """{0}/api/method/{1}?key={2}&file_name={3}""".format(site_base_url, method, key, filename)
+                else:
+                    file_url = '{}/{}/{}'.format(
+                        s3_upload.S3_CLIENT.meta.endpoint_url,
+                        s3_upload.BUCKET,
+                        key
+                    )
+                frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
+                    old_parent=%s, content_hash=%s WHERE name=%s""", (
+                    file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
 
-            frappe.db.commit()
-            doc.reload()
-            os.remove(file_path)
+                # From this PR, this code is unuseful
+                # https://github.com/zerodha/frappe-attachments-s3/pull/39
+                # if frappe.get_meta(parent_doctype).get('image_field'):
+                #     frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(
+                #         parent_doctype).get('image_field'), file_url)
+
+                frappe.db.commit()
+                doc.reload()
+                os.remove(file_path)
 
 
 @frappe.whitelist()
