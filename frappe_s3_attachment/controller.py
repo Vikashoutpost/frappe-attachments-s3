@@ -208,9 +208,9 @@ def file_upload_to_s3(doc, method):
     customizations = frappe.db.sql(""" SELECT * FROM `tabMplify Customizations` WHERE customization_id='S3UA'""",
                                    as_dict=1)
 
-    if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype and doc.attached_to_doctype not in ['Data Import','Prepared Report'] and doc.attached_to_name:
-        check_file = frappe.db.sql(""" SELECT * FROM `tabFile` WHERE file_url=%s and name!=%s""",(doc.file_url,doc.name),as_dict=1)
-        if doc.file_url and not doc.file_url.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs") and len(check_file) == 0:
+    if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype and doc.attached_to_doctype not in ['Data Import','Prepared Report','Employee Advance'] and doc.attached_to_name:
+        # check_file = frappe.db.sql(""" SELECT * FROM `tabFile` WHERE file_url=%s and name!=%s""",(doc.file_url,doc.name),as_dict=1)
+        if doc.file_url and not doc.file_url.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs"):
             s3_upload = S3Operations()
             path = doc.file_url
             site_path = frappe.utils.get_site_path()
