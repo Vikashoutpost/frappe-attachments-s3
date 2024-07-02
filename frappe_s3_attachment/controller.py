@@ -211,7 +211,7 @@ def file_upload_to_s3(doc, method):
     if doc.attached_to_doctype == 'Payment Entry':
         pe = frappe.get_doc("Payment Entry",doc.attached_to_name)
     if len(customizations) > 0 and customizations[0].enable and doc.attached_to_doctype \
-        and doc.attached_to_doctype not in ['Data Import','Prepared Report'] and doc.attached_to_name (not pe or pe.party_type != "Employee"):
+        and doc.attached_to_doctype not in ['Data Import','Prepared Report'] and doc.attached_to_name and (not pe or pe.party_type != "Employee"):
         check_file = frappe.db.sql(""" SELECT * FROM `tabFile` WHERE file_url=%s and name!=%s""",(doc.file_url,doc.name),as_dict=1)
         if doc.file_url and not doc.file_url.startswith("https://s3.eu-west-1.amazonaws.com/erp-next-docs") and len(check_file) == 0:
             s3_upload = S3Operations()
