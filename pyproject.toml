@@ -4,12 +4,15 @@ version = "0.0.1"
 
 
 dependencies = [
+    "boto3>=1.18.49",
+    "python-magic==0.4.27",
+    "urllib3==1.26.4",
+    "cryptography~=46.0.3",
+    "pyOpenSSL~=26.0.0",
     "xlsxwriter",
     "gspread",
     "geopy",
-    "qrcode",
-    "cryptography~=46.0.3",
-    "pyOpenSSL~=26.0.0"
+    "qrcode"
 ]
 
 [tool.bench.frappe-dependencies]
