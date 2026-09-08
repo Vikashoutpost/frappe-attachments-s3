@@ -1,0 +1,1 @@
+frappe_s3_attachment.patches.downgrade_cryptography
